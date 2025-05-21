@@ -8,13 +8,13 @@ import { Config } from '../config';
 
 export abstract class Service {
     abstract apiRoutes: ApiRoutes;
-    service: Services;
+    serviceName: Services;
     categories: number[];
     seeds: number;
     indexers: Indexer[] = [];
 
     protected constructor(name: Services, categories: number[], seeds: number) {
-        this.service = name;
+        this.serviceName = name;
         this.categories = categories;
         this.seeds = seeds;
     }
@@ -78,9 +78,9 @@ export abstract class Service {
             .catch((error) => {
                 if (error && error.response) {
                     const axiosError = error as AxiosError;
-                    console.error(`[${this.service}][${axiosError.response?.status}] Couldn't get indexes, error: ${JSON.stringify(axiosError.response?.data)}, url: ${axiosError.config.url}`);
+                    console.error(`[${this.serviceName}][${axiosError.response?.status}] Couldn't get indexes, error: ${JSON.stringify(axiosError.response?.data)}, url: ${axiosError.config!.url}`);
                 } else {
-                    console.error(`[${this.service}] Unexpected error during request`, error);
+                    console.error(`[${this.serviceName}] Unexpected error during request`, error);
                 }
                 throw error;
             });
@@ -90,7 +90,7 @@ export abstract class Service {
         try {
             return this.mapToIndexer(entry);
         } catch (error) {
-            console.warn(`[${this.service}] Indexer ${entry.name} could not be parsed, skipping for check`);
+            console.warn(`[${this.serviceName}] Indexer ${entry.name} could not be parsed, skipping for check`);
         }
     }
 
@@ -98,19 +98,19 @@ export abstract class Service {
     private handleRequest(axiosResponsePromise: Promise<AxiosResponse>) {
         return axiosResponsePromise.then((response) => {
             if (response.status == 201) {
-                console.log(`[${this.service}] Added ${response.data.name} successfully!`);
+                console.log(`[${this.serviceName}] Added ${response.data.name} successfully!`);
             } else if (response.status == 202) {
-                console.log(`[${this.service}] Updated ${response.data.name} successfully!`);
+                console.log(`[${this.serviceName}] Updated ${response.data.name} successfully!`);
             } else {
-                console.log(`[${this.service}] Request successful, but unknown responseStatus`, response.data.name);
+                console.log(`[${this.serviceName}] Request successful, but unknown responseStatus`, response.data.name);
             }
         }).catch((error) => {
             if (error && error.response) {
                 const axiosError = error as AxiosError;
                 const data = JSON.parse(error.response.config.data);
-                console.error(`[${this.service}][${axiosError.response?.status}] Something went wrong with ${data.name}, error: ${axiosError.response?.data[0]?.errorMessage}`);
+                console.error(`[${this.serviceName}][${axiosError.response?.status}] Something went wrong with ${data.name}, error: ${(axiosError.response?.data as any)[0]?.errorMessage}`);
             } else {
-                console.error(`[${this.service}] Unexpected error during request`, error);
+                console.error(`[${this.serviceName}] Unexpected error during request`, error);
             }
         });
     }
@@ -125,7 +125,7 @@ export abstract class Service {
             if (this.shouldAdd(indexer)) {
                 return indexer;
             } {
-                console.debug(`[${this.service}] Skipping add for ${indexer.id}, since there were no matching categories.`)
+                console.debug(`[${this.serviceName}] Skipping add for ${indexer.id}, since there were no matching categories.`)
             }
         }).filter(notEmpty);
 
@@ -136,13 +136,13 @@ export abstract class Service {
             if (this.shouldUpdate(existingIndexer, jacketIndexer)) {
                 return jacketIndexer;
             } else {
-                console.debug(`[${this.service}] Skipping update for ${existingIndexer.id}, since no updates were detected`)
+                console.debug(`[${this.serviceName}] Skipping update for ${existingIndexer.id}, since no updates were detected`)
             }
         }).filter(notEmpty);
 
         const notInJackett = serviceIdList.filter((id) => !idList.includes(id));
         notInJackett.forEach((indexer) => {
-            console.warn(`[${this.service}] Found indexer ${indexer} which is not in Jackett, please remove manually`)
+            console.warn(`[${this.serviceName}] Found indexer ${indexer} which is not in Jackett, please remove manually`)
         })
 
         return { add: shouldBeAddedIndexers, update: shouldBeUpdatedIndexers };
@@ -166,7 +166,7 @@ export abstract class Service {
 
     protected doesIndexerSpecificRuleApply(indexer: JackettIndexer): boolean {
         return -1 !== Config.indexSpecificRules.findIndex((indexSpecificRule) => {
-            if (indexSpecificRule.service === Services.ALL || indexSpecificRule.service === this.service) {
+            if (indexSpecificRule.service === Services.ALL || indexSpecificRule.service === this.serviceName) {
                 if (indexer.id === indexSpecificRule.indexerId) {
                     return true;
                 }
@@ -181,7 +181,7 @@ export abstract class Service {
         animeSupportedCategories: number[],
     ) {
         Config.indexSpecificRules.forEach((indexSpecificRule) => {
-            if (indexSpecificRule.service === Services.ALL || indexSpecificRule.service === this.service) {
+            if (indexSpecificRule.service === Services.ALL || indexSpecificRule.service === this.serviceName) {
                 if (indexer.id === indexSpecificRule.indexerId) {
                     if (indexSpecificRule.category != null && !supportedCategories.includes(indexSpecificRule.category)) {
                         // console.log(`[${this.service}] Detected index specific setting, adding category ${indexSpecificRule.category}`);
@@ -202,7 +202,7 @@ export abstract class Service {
         animeSupportedCategories: number[],
     ) {
         Config.indexSpecificRules.forEach((indexSpecificRule) => {
-            if (indexSpecificRule.service === Services.ALL || indexSpecificRule.service === this.service) {
+            if (indexSpecificRule.service === Services.ALL || indexSpecificRule.service === this.serviceName) {
                 if (indexer.id === indexSpecificRule.indexerId) {
                     if (indexSpecificRule.category != null && supportedCategories.includes(indexSpecificRule.category)) {
                         // console.log(`[${this.service}] Detected index specific setting, removing category ${indexSpecificRule.category}`);

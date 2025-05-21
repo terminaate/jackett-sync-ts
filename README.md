@@ -12,7 +12,7 @@ An image is available at [allergicduck/jackett-sync](https://hub.docker.com/r/al
 
 - Clone repo / use Docker
 - `npm install`
-- `cp .env-example .env`
+- `cp .env.example .env`
 - `npm start`
 - Jackett is required, all others are optional.
 

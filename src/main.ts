@@ -48,18 +48,18 @@ async function start() {
 function sync(service: Service, jackettIndexers: JackettIndexer[]) {
     return service.validate()
         .then((response) => {
-            console.log(`[${service.service}] Tested url & apiKey, running version ${response.data.version}`);
+            console.log(`[${service.serviceName}] Tested url & apiKey, running version ${response.data.version}`);
             return service.getIndexers();
         })
         .then(() => {
-            console.log(`[${service.service}] Starting sync`);
+            console.log(`[${service.serviceName}] Starting sync`);
             return service.sync(jackettIndexers);
         })
         .then(() => {
-            console.log(`[${service.service}] Sync is done!`);
+            console.log(`[${service.serviceName}] Sync is done!`);
         })
         .catch((error) => {
-            console.error(`[${service.service}] Failed:`, error.message);
+            console.error(`[${service.serviceName}] Failed:`, error.message);
         });
 }
 
