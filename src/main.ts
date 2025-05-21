@@ -1,7 +1,3 @@
-import * as dotenv from 'dotenv';
-
-dotenv.config();
-
 import { Jackett } from './services/jackett';
 import { Sonarr } from './services/sonarr';
 import { Radarr } from './services/radarr';
