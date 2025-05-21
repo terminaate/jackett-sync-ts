@@ -1,66 +1,62 @@
-import { Jackett } from './services/jackett';
-import { Sonarr } from './services/sonarr';
-import { Radarr } from './services/radarr';
-import { Lidarr } from './services/lidarr';
-import { Readarr } from './services/readarr';
-import { Service } from './services/service';
-import { JackettIndexer } from './models/jackettIndexer';
+import { Jackett } from "./services/jackett";
+import { Sonarr } from "./services/sonarr";
+import { Radarr } from "./services/radarr";
+import { Lidarr } from "./services/lidarr";
+import { Readarr } from "./services/readarr";
+import { Service } from "./services/service";
+import { JackettIndexer } from "./models/jackettIndexer";
 
 async function start() {
-    let jackettIndexers: JackettIndexer[];
-    try {
-        const jackett = new Jackett();
-        jackettIndexers = await jackett.getIndexers();
-    } catch (error) {
-        console.error(`[${Jackett.name}] Couldn't get indexers: `, (error as Error).message);
-        process.exit(1);
-    }
+  let jackettIndexers: JackettIndexer[];
 
-    try {
-        const sonarr = new Sonarr();
-        sync(sonarr, jackettIndexers);
-    } catch (error) {
-        console.error(`[${Sonarr.name}] Failed:`, (error as Error).message);
-    }
+  try {
+    const jackett = new Jackett();
+    jackettIndexers = await jackett.getIndexers();
+  } catch (error) {
+    console.error(
+      `[${Jackett.name}] Couldn't get indexers: `,
+      (error as Error).message
+    );
+    process.exit(1);
+  }
 
-    try {
-        const radarr = new Radarr();
-        sync(radarr, jackettIndexers);
-    } catch (error) {
-        console.error(`[${Radarr.name}] Failed:`, (error as Error).message);
-    }
+  const services: Service[] = [
+    new Sonarr(),
+    new Radarr(),
+    new Lidarr(),
+    new Readarr(),
+  ];
 
-    try {
-        const lidarr = new Lidarr();
-        sync(lidarr, jackettIndexers);
-    } catch (error) {
-        console.error(`[${Lidarr.name}] Failed:`, (error as Error).message);
-    }
-
-    try {
-        const readarr = new Readarr();
-        sync(readarr, jackettIndexers);
-    } catch (error) {
-        console.error(`[${Readarr.name}] Failed:`, (error as Error).message);
-    }
+  await Promise.all(
+    services.map(async (service) => {
+      try {
+        await sync(service, jackettIndexers);
+      } catch (error) {
+        console.error(
+          `[${service.serviceName}] Sync failed:`,
+          (error as Error).message
+        );
+      }
+    })
+  );
 }
 
-function sync(service: Service, jackettIndexers: JackettIndexer[]) {
-    return service.validate()
-        .then((response) => {
-            console.log(`[${service.serviceName}] Tested url & apiKey, running version ${response.data.version}`);
-            return service.getIndexers();
-        })
-        .then(() => {
-            console.log(`[${service.serviceName}] Starting sync`);
-            return service.sync(jackettIndexers);
-        })
-        .then(() => {
-            console.log(`[${service.serviceName}] Sync is done!`);
-        })
-        .catch((error) => {
-            console.error(`[${service.serviceName}] Failed:`, error.message);
-        });
+async function sync(service: Service, jackettIndexers: JackettIndexer[]) {
+  try {
+    const response = await service.validate();
+    console.log(
+      `[${service.serviceName}] Tested url & apiKey, running version ${response.data.version}`
+    );
+
+    await service.getIndexers();
+    console.log(`[${service.serviceName}] Starting sync`);
+
+    await service.sync(jackettIndexers);
+
+    console.log(`[${service.serviceName}] Sync is done!`);
+  } catch (error: any) {
+    console.error(`[${service.serviceName}] Failed:`, error.message);
+  }
 }
 
-start();
+void start();

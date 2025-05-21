@@ -1,72 +1,87 @@
-import { Service } from './service';
-import { Indexer } from '../models/indexer';
-import { Config } from '../config';
-import { JackettIndexer } from '../models/jackettIndexer';
-import { ReadarrEntry, ReadarrFieldName } from '../interfaces/ReadarrEntry';
-import { ApiRoutes } from '../models/apiRoutes';
-import { getIdFromIndexerUrl } from '../helper';
-import { Services } from '../models/indexSpecificRule';
+import { Service } from "./service";
+import { Indexer } from "../models/indexer";
+import { Config } from "../config";
+import { JackettIndexer } from "../models/jackettIndexer";
+import { ReadarrEntry, ReadarrFieldName } from "../interfaces/ReadarrEntry";
+import { ApiRoutes } from "../models/apiRoutes";
+import { getIdFromIndexerUrl } from "../helper";
+import { Services } from "../models/indexSpecificRule";
 
 export class Readarr extends Service {
-    apiRoutes: ApiRoutes;
+  apiRoutes: ApiRoutes;
 
-    constructor() {
-        const c = Config.readarr;
-        super(Services.READARR, c.categories, c.seeds);
-        this.checkUrlAndApiKey(c.url, c.apiKey);
+  constructor() {
+    const c = Config.readarr;
+    super(Services.READARR, c.categories, c.seeds);
 
-        this.apiRoutes = new ApiRoutes(c.url!, c.apiPath, c.apiKey!);
-    }
+    this.apiRoutes = new ApiRoutes(c.url!, c.apiPath, c.apiKey!);
+  }
 
-    protected mapToIndexer(entry: ReadarrEntry): Indexer {
-        const indexer = new Indexer(
-            undefined,
-            entry.id,
-            entry.name,
-            entry.protocol,
-            entry.fields.find((field) => field.name == ReadarrFieldName.categories)!.value,
-            entry.fields.find((field) => field.name == ReadarrFieldName.minimumSeeders)!.value,
-            entry.fields.find((field) => field.name == ReadarrFieldName.baseUrl)!.value,
-            entry.fields.find((field) => field.name == ReadarrFieldName.apiKey)?.value,
-            []
-        );
+  protected override beforeValidate(): boolean | Promise<boolean> {
+    const c = Config.readarr;
+    this.checkUrlAndApiKey(c.url, c.apiKey);
+    return true;
+  }
 
-        indexer.id = getIdFromIndexerUrl(indexer.url);
+  protected mapToIndexer(entry: ReadarrEntry): Indexer {
+    const indexer = new Indexer(
+      undefined,
+      entry.id,
+      entry.name,
+      entry.protocol,
+      entry.fields.find(
+        (field) => field.name == ReadarrFieldName.categories
+      )!.value,
+      entry.fields.find(
+        (field) => field.name == ReadarrFieldName.minimumSeeders
+      )!.value,
+      entry.fields.find(
+        (field) => field.name == ReadarrFieldName.baseUrl
+      )!.value,
+      entry.fields.find(
+        (field) => field.name == ReadarrFieldName.apiKey
+      )?.value,
+      []
+    );
 
-        return indexer;
-    }
+    indexer.id = getIdFromIndexerUrl(indexer.url);
 
-    protected generateDefaultBody(indexer: JackettIndexer): ReadarrEntry {
-        const supportedCategories = this.categories.filter(id => indexer.categories.includes(id));
+    return indexer;
+  }
 
-        this.indexerSpecificConfiguration(indexer, supportedCategories, []);
+  protected generateDefaultBody(indexer: JackettIndexer): ReadarrEntry {
+    const supportedCategories = this.categories.filter((id) =>
+      indexer.categories.includes(id)
+    );
 
-        return {
-            priority: 25,
-            enableRss: true,
-            enableAutomaticSearch: true,
-            enableInteractiveSearch: true,
-            supportsRss: true,
-            supportsSearch: true,
-            protocol: indexer.protocol,
-            name: indexer.title,
-            fields: [
-                { name: ReadarrFieldName.baseUrl, value: indexer.url },
-                { name: ReadarrFieldName.apiPath, value: '/api' },
-                { name: ReadarrFieldName.apiKey, value: indexer.key },
-                { name: ReadarrFieldName.categories, value: supportedCategories },
-                { name: ReadarrFieldName.earlyReleaseLimit },
-                { name: ReadarrFieldName.additionalParameters },
-                { name: ReadarrFieldName.minimumSeeders, value: this.seeds },
-                { name: ReadarrFieldName.seedTime },
-                { name: ReadarrFieldName.seedRatio },
-                { name: ReadarrFieldName.discographySeedTime },
-            ],
-            implementationName: 'Torznab',
-            implementation: 'Torznab',
-            configContract: 'TorznabSettings',
-            tags: [],
-            id: undefined
-        };
-    }
+    this.indexerSpecificConfiguration(indexer, supportedCategories, []);
+
+    return {
+      priority: 25,
+      enableRss: true,
+      enableAutomaticSearch: true,
+      enableInteractiveSearch: true,
+      supportsRss: true,
+      supportsSearch: true,
+      protocol: indexer.protocol,
+      name: indexer.title,
+      fields: [
+        { name: ReadarrFieldName.baseUrl, value: indexer.url },
+        { name: ReadarrFieldName.apiPath, value: "/api" },
+        { name: ReadarrFieldName.apiKey, value: indexer.key },
+        { name: ReadarrFieldName.categories, value: supportedCategories },
+        { name: ReadarrFieldName.earlyReleaseLimit },
+        { name: ReadarrFieldName.additionalParameters },
+        { name: ReadarrFieldName.minimumSeeders, value: this.seeds },
+        { name: ReadarrFieldName.seedTime },
+        { name: ReadarrFieldName.seedRatio },
+        { name: ReadarrFieldName.discographySeedTime },
+      ],
+      implementationName: "Torznab",
+      implementation: "Torznab",
+      configContract: "TorznabSettings",
+      tags: [],
+      id: undefined,
+    };
+  }
 }
